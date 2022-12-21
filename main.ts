@@ -185,7 +185,8 @@ game.splash("para girar", "Usa ← →")
 placePizza()
 info.setScore(0)
 
-let snake1 = createSnake(4, 12,  Direction.Up);
+let snake1 = createSnake(4, 12, 7, Direction.Up);
+let snake2 = createSnake(10, 12, 4, Direction.Up);
 
 forever(function () {
     if (snake1.x < 0 || snake1.x > screen.width || snake1.y < 0 || snake1.y > screen.height) {
@@ -198,20 +199,22 @@ forever(function () {
         addSectionToBody()
     } else {
         move(snake1)
+        move(snake2)
     }
     setHeadNextPosition(snake1)
+    setHeadNextPosition(snake2)
     enqueued = false
     lastIteration = game.runtime()
 })
 
-function createSnake(x: number, y: number,  direction: Direction) : Sprite{
+function createSnake(x: number, y: number, color: number, direction: Direction) : Sprite{
     let snake = sprites.create(bodyPart.clone(), SpriteKind.Player)
     
-    snake.image.replace(0x1, 7)
+    snake.image.replace(0x1, color)
     snake.left = x * size
     snake.top = y * size
     snake.data = {};
-    snake.data.color = 7;
+    snake.data.color = color;
     snake.data.direction = direction;
 return snake;
 }
@@ -280,6 +283,11 @@ function placePizza() {
 sprites.onOverlap(SpriteKind.Player, SpriteKind.Tail, function (sprite, otherSprite) {
     game.over(false)
 })
+
+sprites.onOverlap(SpriteKind.Player, SpriteKind.Player, function (sprite, otherSprite) {
+    game.over(false)
+})
+
 sprites.onOverlap(SpriteKind.Player, SpriteKind.Food, function (player, food) {
     info.changeScoreBy(1)
     food.destroy(effects.disintegrate)
@@ -294,5 +302,12 @@ controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
 })
 controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
     setDirection(snake1, Math.abs((snake1.data.direction + 1) % 4));
+})
+
+controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
+    setDirection(snake2, (snake2.data.direction + 3) % 4);
+})
+controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
+    setDirection(snake2, Math.abs((snake2.data.direction + 1) % 4));
 })
 
