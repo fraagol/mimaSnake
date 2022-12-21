@@ -2,19 +2,10 @@ namespace SpriteKind {
     export const Tail = SpriteKind.create()
 }
 
-enum Direction {Up, Right, Down, Left}
+enum Direction { Up, Right, Down, Left }
+
 const NEXT_SECTION_KEY = "__child_node"
-const size = 8
-
-let lastIteration = 0
-let timeout = 0
-let leafImage: Image = null
-let i = 0
-let enqueued = false
-let addSectionTo: Sprite = null
-let addSection = false
-
-const mimacom = img`
+const background = img`
     1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
     1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
     1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
@@ -149,7 +140,7 @@ const mimacom = img`
     1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
     1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
     `
-const head = img`
+const bodyPart = img`
     . . 5 5 5 5 . . 
     . 5 1 1 1 1 5 . 
     5 1 1 1 1 1 1 5 
@@ -159,157 +150,135 @@ const head = img`
     . 5 1 1 1 1 5 . 
     . . 5 5 5 5 . . 
     `
-function createSnake(x: number, y: number, color: number, direction: Direction) : Sprite{
-    let snake = sprites.create(head.clone(), SpriteKind.Player)
-    snake.image.replace(0x1,color)
+const pizzaImage = img`
+    . . . . . . b b b b . . . . . . 
+    . . . . . . b 4 4 4 b . . . . . 
+    . . . . . . b b 4 4 4 b . . . . 
+    . . . . . b 4 b b b 4 4 b . . . 
+    . . . . b d 5 5 5 4 b 4 4 b . . 
+    . . . . b 3 2 3 5 5 4 e 4 4 b . 
+    . . . b d 2 2 2 5 7 5 4 e 4 4 e 
+    . . . b 5 3 2 3 5 5 5 5 e e e e 
+    . . b d 7 5 5 5 3 2 3 5 5 e e e 
+    . . b 5 5 5 5 5 2 2 2 5 5 d e e 
+    . b 3 2 3 5 7 5 3 2 3 5 d d e 4 
+    . b 2 2 2 5 5 5 5 5 5 d d e 4 . 
+    b d 3 2 d 5 5 5 d d d 4 4 . . . 
+    b 5 5 5 5 d d 4 4 4 4 . . . . . 
+    4 d d d 4 4 4 . . . . . . . . . 
+    4 4 4 4 . . . . . . . . . . . . 
+    `
+const size = 8
+
+let lastIteration = 0
+let addSection = false
+let timeout = 500
+let pizza : Sprite
+
+let addSectionTo: Sprite = null
+let enqueued = false
+let i = 0
+
+
+scene.setBackgroundImage(background)
+game.splash("para girar", "Usa ← →")
+placePizza()
+info.setScore(0)
+
+let snake1 = createSnake(4, 12,  Direction.Up);
+
+forever(function () {
+    if (snake1.x < 0 || snake1.x > screen.width || snake1.y < 0 || snake1.y > screen.height) {
+        game.over(false)
+    }
+    if (game.runtime() - lastIteration < timeout) {
+        return;
+    }
+    if (addSection) {
+        addSectionToBody()
+    } else {
+        move(snake1)
+    }
+    setHeadNextPosition(snake1)
+    enqueued = false
+    lastIteration = game.runtime()
+})
+
+function createSnake(x: number, y: number,  direction: Direction) : Sprite{
+    let snake = sprites.create(bodyPart.clone(), SpriteKind.Player)
+    
+    snake.image.replace(0x1, 7)
     snake.left = x * size
     snake.top = y * size
     snake.data = {};
-    snake.data.color = color;
+    snake.data.color = 7;
     snake.data.direction = direction;
 return snake;
 }
 
-let snake1 = createSnake(4, 12, 7, Direction.Up);
+function addSectionToBody() {
+    const newSection = sprites.create(bodyPart.clone(), SpriteKind.Tail)
+    newSection.x = addSectionTo.x
+    newSection.y = addSectionTo.y
+   
+    newSection.image.replace(0x1, addSectionTo.data.color);
 
-let snake2 = createSnake(10, 12, 4, Direction.Left);
+    newSection.data = {};
+    newSection.data[NEXT_SECTION_KEY] = addSectionTo.data[NEXT_SECTION_KEY]
+    addSectionTo.data[NEXT_SECTION_KEY] = newSection
+    addSection = false
+}
+
+function setHeadNextPosition(snake: Sprite) {
+    switch (snake.data.direction) {
+        case Direction.Up:
+            snake.y -= size;
+            break;
+        case Direction.Down:
+            snake.y += size;
+            break;
+        case Direction.Left:
+            snake.x -= size;
+            break;
+        case Direction.Right:
+            snake.x += size;
+            break;
+    }
+}
+
+function move(piece: Sprite) {
+    const next = piece.data[NEXT_SECTION_KEY]
+    if (next) {
+        move(next)
+        next.x = piece.x;
+        next.y = piece.y;
+    }
+}
 
 
-
-scene.setBackgroundImage(mimacom)
-let currentLeaf: Sprite;
-
-leafImage = img`
-    . . . . . f f 7 
-    . . . f f f 6 f 
-    . . f 6 7 f f f 
-    . f 6 7 f 7 7 f 
-    f f 7 f 7 7 7 f 
-    f 6 f 7 7 7 f . 
-    f 6 7 7 f f . . 
-    f f f f f . . . 
-    `
-let pizza = img`
-. . . . . . b b b b . . . . . . 
-. . . . . . b 4 4 4 b . . . . . 
-. . . . . . b b 4 4 4 b . . . . 
-. . . . . b 4 b b b 4 4 b . . . 
-. . . . b d 5 5 5 4 b 4 4 b . . 
-. . . . b 3 2 3 5 5 4 e 4 4 b . 
-. . . b d 2 2 2 5 7 5 4 e 4 4 e 
-. . . b 5 3 2 3 5 5 5 5 e e e e 
-. . b d 7 5 5 5 3 2 3 5 5 e e e 
-. . b 5 5 5 5 5 2 2 2 5 5 d e e 
-. b 3 2 3 5 7 5 3 2 3 5 d d e 4 
-. b 2 2 2 5 5 5 5 5 5 d d e 4 . 
-b d 3 2 d 5 5 5 d d d 4 4 . . . 
-b 5 5 5 5 d d 4 4 4 4 . . . . . 
-4 d d d 4 4 4 . . . . . . . . . 
-4 4 4 4 . . . . . . . . . . . . 
-`;
-    
-let shinyLeafImage = img`
-    . . 1 . . f f 7 
-    . 1 . f f f 6 f 
-    1 . f 6 7 f f f 
-    . f 6 7 f 7 7 f 
-    f f 7 f 7 7 7 f 
-    f 6 f 7 7 7 f . 
-    f 6 7 7 f f . 1 
-    f f f f f . 1 . 
-    `
-placeFruit()
-info.setScore(0)
-let direction = Direction.Up;
-timeout = 500
 function setDirection(snake: Sprite, targetDir: Direction) {
     if (!enqueued) {
         snake.data.direction = targetDir;
         enqueued = true;
     }
 }
-forever(function () {
-    if (snake1.left < 0 || snake1.right > screen.width || snake1.top < 0 || snake1.bottom > screen.height) {
-        game.over(false)
-    }
-    if ( game.runtime() - lastIteration < timeout) {
-        return;
-    }
-    if (addSection) {
-        addToBody();
-    } else {
-        move(snake1);
-        move(snake2);
-    }
-    setHeadNextPosition(snake1);
-    setHeadNextPosition(snake2);
-    enqueued = false
-    lastIteration = game.runtime()
-    function setHeadNextPosition(snake: Sprite) {
-        switch (snake.data.direction) {
-            case Direction.Up:
-                snake.y -= size;
-
-                break;
-            case Direction.Down:
-                snake.y += size;
 
 
-                break;
-            case Direction.Left:
-                snake.x -= size;
+function placePizza() {
+    pizza = sprites.create(pizzaImage, SpriteKind.Food)
+    do {
+        pizza.left = randint(1, 18) * size;
+        pizza.top = randint(1, 13) * size;
+    } while (
+        (pizza.top === 0 && pizza.right === screen.width)
+        || sprites
+            .allOfKind(SpriteKind.Tail)
+            .some(s => s.overlapsWith(pizza))
+    );
+}
 
-
-                break;
-            case Direction.Right:
-                snake.x += size;
-
-
-                break;
-        }
-    }
-function addToBody() {
-        const newSection = sprites.create(head.clone(), SpriteKind.Tail);
-        newSection.data = {};
-
-        newSection.image.replace(0x1, addSectionTo.data.color);
-
-        newSection.x = addSectionTo.x;
-        newSection.y = addSectionTo.y;
-
-        newSection.data[NEXT_SECTION_KEY] = addSectionTo.data[NEXT_SECTION_KEY];
-        addSectionTo.data[NEXT_SECTION_KEY] = newSection;
-        addSection = false;
-    }
-function move(piece: Sprite) {
-        const next = piece.data[NEXT_SECTION_KEY];
-        if (next) {
-            move(next);
-            next.x = piece.x;
-            next.y = piece.y;
-        }
-    }
-})
-game.onUpdateInterval(500, function () {
-    if (currentLeaf.image == leafImage) {
-//        currentLeaf.setImage(shinyLeafImage)
-    } else {
-//        currentLeaf.setImage(leafImage)
-    }
-})
-
-controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
-    setDirection(snake2, Math.abs((snake2.data.direction + 1) % 4));
-})
-
-controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
-    setDirection(snake2, (snake2.data.direction + 3) % 4);
-})
-controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
-    setDirection(snake1, (snake1.data.direction + 3) % 4);
-})
-controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
-    setDirection(snake1, Math.abs((snake1.data.direction + 1) % 4));
+sprites.onOverlap(SpriteKind.Player, SpriteKind.Tail, function (sprite, otherSprite) {
+    game.over(false)
 })
 sprites.onOverlap(SpriteKind.Player, SpriteKind.Food, function (player, food) {
     info.changeScoreBy(1)
@@ -318,26 +287,12 @@ sprites.onOverlap(SpriteKind.Player, SpriteKind.Food, function (player, food) {
     timeout = Math.max(150, timeout - 50)
     addSection = true
     addSectionTo = player
-    placeFruit()
+    placePizza()
+})
+controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
+    setDirection(snake1, (snake1.data.direction + 3) % 4);
+})
+controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
+    setDirection(snake1, Math.abs((snake1.data.direction + 1) % 4));
 })
 
-sprites.onOverlap(SpriteKind.Player, SpriteKind.Tail, function (sprite, otherSprite) {
-    game.over(false)
-})
-
-sprites.onOverlap(SpriteKind.Player, SpriteKind.Player, function (sprite, otherSprite) {
-    game.over(false)
-})
-
-function placeFruit() {
-    currentLeaf = sprites.create(pizza, SpriteKind.Food)
-    do {
-        currentLeaf.left = randint(0, 19) * size;
-        currentLeaf.top = randint(0, 14) * size;
-    } while (
-        (currentLeaf.top === 0 && currentLeaf.right === screen.width)
-        || sprites
-            .allOfKind(SpriteKind.Tail)
-            .some(s => s.overlapsWith(currentLeaf))
-    );
-}
