@@ -185,9 +185,12 @@ game.splash("para girar", "Usa ← →")
 placePizza()
 info.setScore(0)
 
-let snake1 = createSnake(4, 12,  Direction.Up);
+// Create snake
+let snake1 = createSnake(4, 12, Direction.Up);
 
+// Main loop 
 forever(function () {
+    // Check boundaries
     if (snake1.x < 0 || snake1.x > screen.width || snake1.y < 0 || snake1.y > screen.height) {
         game.over(false)
     }
@@ -206,8 +209,7 @@ forever(function () {
 
 function createSnake(x: number, y: number,  direction: Direction) : Sprite{
     let snake = sprites.create(bodyPart.clone(), SpriteKind.Player)
-    
-    snake.image.replace(0x1, 7)
+    snake.image.replace(1, 7)
     snake.left = x * size
     snake.top = y * size
     snake.data = {};
@@ -216,6 +218,7 @@ function createSnake(x: number, y: number,  direction: Direction) : Sprite{
 return snake;
 }
 
+// Adds a new part of the snake body, just after the head
 function addSectionToBody() {
     const newSection = sprites.create(bodyPart.clone(), SpriteKind.Tail)
     newSection.x = addSectionTo.x
@@ -246,6 +249,7 @@ function setHeadNextPosition(snake: Sprite) {
     }
 }
 
+// Recursive function to move all the elements of the body
 function move(piece: Sprite) {
     const next = piece.data[NEXT_SECTION_KEY]
     if (next) {
@@ -263,7 +267,7 @@ function setDirection(snake: Sprite, targetDir: Direction) {
     }
 }
 
-
+// Place a new pizza
 function placePizza() {
     pizza = sprites.create(pizzaImage, SpriteKind.Food)
     do {
@@ -277,6 +281,7 @@ function placePizza() {
     );
 }
 
+// Collisions
 sprites.onOverlap(SpriteKind.Player, SpriteKind.Tail, function (sprite, otherSprite) {
     game.over(false)
 })
@@ -289,10 +294,14 @@ sprites.onOverlap(SpriteKind.Player, SpriteKind.Food, function (player, food) {
     addSectionTo = player
     placePizza()
 })
+
+// Controls
 controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
+    // turn counterclockwise
     setDirection(snake1, (snake1.data.direction + 3) % 4);
 })
 controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
+     // turn clockwise
     setDirection(snake1, Math.abs((snake1.data.direction + 1) % 4));
 })
 
