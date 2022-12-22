@@ -188,12 +188,26 @@ info.setScore(0)
 let snake1 = createSnake(4, 12,  Direction.Up);
 
 forever(function () {
-    if (snake1.x < 0 || snake1.x > screen.width || snake1.y < 0 || snake1.y > screen.height) {
-        game.over(false)
+
+    if (snake1.x < 0 ) {
+        snake1.x = screen.width-4
+    } 
+
+    if (snake1.x > screen.width){
+         snake1.x = 4
     }
+
+    if (  snake1.y < 0 ){
+        snake1.y = screen.height - 4
+    }
+    if(snake1.y > screen.height){
+        snake1.y = 4
+    }
+
     if (game.runtime() - lastIteration < timeout) {
         return;
     }
+
     if (addSection) {
         addSectionToBody()
     } else {
